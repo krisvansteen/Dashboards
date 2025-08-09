@@ -196,7 +196,6 @@ def start_mqtt():
     client.connect(MQTT_BROKER, MQTT_PORT, 60)
     client.loop_forever()
 
-if __name__ == "__main__":
-    mqtt_thread = threading.Thread(target=start_mqtt, daemon=True)
-    mqtt_thread.start()
-    app.run(host="0.0.0.0", port=5000)
+if _name_ == "_main_":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
