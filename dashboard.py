@@ -9,7 +9,7 @@ import paho.mqtt.client as mqtt
 # MQTT instellingen
 MQTT_BROKER = "test.mosquitto.org"  # Aanpassen naar jouw broker
 MQTT_PORT = 9001
-MQTT_TOPIC = "race/#"  # Luistert naar alle subtopics van race
+MQTT_TOPIC = "race/results/#"  # Luistert naar alle subtopics van race
 
 # Per topic laatste data opslaan
 latest_data = {}
