@@ -38,12 +38,12 @@ html_template = """
 <!doctype html>
 <html>
 <head>
-    <title>MQTT Data per Topic</title>
+    <title>Belgian Cycling Results</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body class="p-4">
-    <h1>MQTT Data per Topic</h1>
+    <h1>Voorlopige uitslag - Provisional result</h1>
 
     {% if topics %}
     <ul class="nav nav-tabs" id="myTab" role="tablist">
