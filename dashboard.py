@@ -7,7 +7,7 @@ from flask import Flask, render_template_string, jsonify
 import paho.mqtt.client as mqtt
 
 # MQTT instellingen
-MQTT_BROKER = "localhost"  # Aanpassen naar jouw broker
+MQTT_BROKER = "test.mosquitto.org"  # Aanpassen naar jouw broker
 MQTT_PORT = 1883
 MQTT_TOPIC = "race/#"  # Luistert naar alle subtopics van race
 
