@@ -196,6 +196,3 @@ def start_mqtt():
     client.connect(MQTT_BROKER, MQTT_PORT, 60)
     client.loop_forever()
 
-if _name_ == "_main_":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
