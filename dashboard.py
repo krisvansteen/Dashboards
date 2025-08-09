@@ -8,7 +8,7 @@ import paho.mqtt.client as mqtt
 
 # MQTT instellingen
 MQTT_BROKER = "test.mosquitto.org"  # Aanpassen naar jouw broker
-MQTT_PORT = 1883
+MQTT_PORT = 9001
 MQTT_TOPIC = "race/#"  # Luistert naar alle subtopics van race
 
 # Per topic laatste data opslaan
@@ -38,12 +38,12 @@ html_template = """
 <!doctype html>
 <html>
 <head>
-    <title>VOORLOPIGE UITSLAG - PROVISIONAL RESULTS </title>
+    <title>BELGIAN CYCLING RESULTS</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body class="p-4">
-    <h1>MQTT Data per Topic</h1>
+    <h1>VOORLOPIGE UITSLAG - PROVISIONAL RESULTS</h1>
 
     {% if topics %}
     <ul class="nav nav-tabs" id="myTab" role="tablist">
