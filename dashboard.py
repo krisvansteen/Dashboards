@@ -9,18 +9,42 @@ import paho.mqtt.client as mqtt
 # MQTT instellingen
 MQTT_BROKER = "test.mosquitto.org"  # Aanpassen naar jouw broker
 MQTT_PORT = 1883
-MQTT_TOPIC = "race/#"  # Luistert naar alle subtopics van race
+MQTT_TOPIC = "race/#"  # Luistert nu naar alle topics onder race/
 
 # Per topic laatste data opslaan
 latest_data = {}
 # Per topic kolomvolgorde opslaan
 topic_columns = {}
 
-# Basisvolgorde voor kolommen
-BASE_ORDER = ["Rang", "Rugnummer", "Naam", "Team", "AantalPassages", "RaceTijdStr", "AchterstandStr"]
+# Basisvolgorde voor kolommen per topic
+BASE_ORDER_PER_TOPIC = {
+    "race/results": ["Rang", "Rugnummer", "Naam", "Team", "AantalPassages", "RaceTijdStr", "AchterstandStr"],
+    "race/pass": ["Rugnummer", "Naam", "Team", "TijdStr","VerschilStr" ]
+}
 
-# Kolomtitel mapping
-COLUMN_TITLES = {
+# Kolomtitel mapping per topic
+COLUMN_TITLES_PER_TOPIC = {
+    "race/results": {
+        "Rang": "Positie",
+        "Rugnummer": "Nr",
+        "Naam": "Renner",
+        "Team": "Ploeg",
+        "AantalPassages": "Passages",
+        "RaceTijdStr": "Tijd",
+        "AchterstandStr": "Achterstand"
+    },
+    "race/pass": {
+        "Rugnummer": "Nr",
+        "Naam": "Naam",
+        "Team": "Ploeg",
+        "TijdStr": "Passage",
+        "VerschilStr": "Verschil"
+    }
+}
+
+# Fallback als topic geen specifieke instelling heeft
+BASE_ORDER_DEFAULT = ["Rang", "Rugnummer", "Naam", "Team", "AantalPassages", "RaceTijdStr", "AchterstandStr"]
+COLUMN_TITLES_DEFAULT = {
     "Rang": "Positie",
     "Rugnummer": "Nr",
     "Naam": "Renner",
@@ -30,10 +54,22 @@ COLUMN_TITLES = {
     "AchterstandStr": "Achterstand"
 }
 
+def get_base_order_for_topic(topic):
+    for prefix, order in BASE_ORDER_PER_TOPIC.items():
+        if topic.startswith(prefix):
+            return order
+    return BASE_ORDER_DEFAULT
+
+def get_column_titles_for_topic(topic):
+    for prefix, titles in COLUMN_TITLES_PER_TOPIC.items():
+        if topic.startswith(prefix):
+            return titles
+    return COLUMN_TITLES_DEFAULT
+
 # Flask app
 app = Flask(__name__)
 
-# HTML template met tabs en AJAX updates
+# HTML template
 html_template = """
 <!doctype html>
 <html>
@@ -61,7 +97,7 @@ html_template = """
         {% for topic in topics %}
         <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
              id="tab{{ loop.index }}" role="tabpanel" data-topic="{{ topic }}">
-            {{ render_table(data.get(topic, []), columns.get(topic, [])) }}
+            {{ render_table(data.get(topic, []), columns.get(topic, []), col_titles.get(topic, {})) | safe }}
         </div>
         {% endfor %}
     </div>
@@ -70,10 +106,9 @@ html_template = """
     {% endif %}
 
 <script>
-const columnTitles = {{ col_titles|tojson }};
+const columnTitlesPerTopic = {{ col_titles|tojson }};
 
 document.addEventListener("DOMContentLoaded", function () {
-    // Tab onthouden
     const lastTab = localStorage.getItem("activeTab");
     if (lastTab) {
         const tabTriggerEl = document.querySelector(`[data-bs-target="${lastTab}"]`);
@@ -89,7 +124,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Data elke 3 seconden verversen
     setInterval(fetchData, 3000);
 });
 
@@ -100,18 +134,20 @@ function fetchData() {
             for (const topic in json.data) {
                 const pane = document.querySelector(`[data-topic="${topic}"]`);
                 if (pane) {
-                    pane.innerHTML = buildTable(json.data[topic], json.columns[topic]);
+                    pane.innerHTML = buildTable(json.data[topic], json.columns[topic], topic);
                 }
             }
         })
         .catch(err => console.error("Fout bij ophalen data:", err));
 }
 
-function buildTable(rows, columns) {
+function buildTable(rows, columns, topic) {
+    const columnTitles = columnTitlesPerTopic[topic] || {};
     if (!rows || !columns) {
         return "<p>Geen data ontvangen voor dit topic...</p>";
     }
-    let html = '<table class="table table-bordered table-sm"><thead><tr>';
+    let html = '<div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">';
+    html += '<table class="table table-bordered table-sm"><thead><tr>';
     for (const col of columns) {
         html += `<th>${columnTitles[col] || col}</th>`;
     }
@@ -123,7 +159,7 @@ function buildTable(rows, columns) {
         }
         html += "</tr>";
     }
-    html += "</tbody></table>";
+    html += "</tbody></table></div>";
     return html;
 }
 </script>
@@ -131,24 +167,26 @@ function buildTable(rows, columns) {
 </html>
 """
 
-def render_table(rows, columns):
+def render_table(rows, columns, titles):
     if not rows or not columns:
         return "<p>Geen data ontvangen voor dit topic...</p>"
-    html = '<table class="table table-bordered table-sm"><thead><tr>'
+    html = '<div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">'
+    html += '<table class="table table-bordered table-sm"><thead><tr>'
     for col in columns:
-        html += f"<th>{COLUMN_TITLES.get(col, col)}</th>"
+        html += f"<th>{titles.get(col, col)}</th>"
     html += "</tr></thead><tbody>"
     for row in rows:
         html += "<tr>"
         for col in columns:
             html += f"<td>{row.get(col, '')}</td>"
         html += "</tr>"
-    html += "</tbody></table>"
+    html += "</tbody></table></div>"
     return html
 
 @app.route("/")
 def index():
     topics = list(latest_data.keys())
+    col_titles_dict = {t: get_column_titles_for_topic(t) for t in topics}
     return render_template_string(
         html_template,
         topics=topics,
@@ -156,14 +194,14 @@ def index():
         base_topic=MQTT_TOPIC,
         render_table=render_table,
         columns=topic_columns,
-        col_titles=COLUMN_TITLES
+        col_titles=col_titles_dict
     )
 
 @app.route("/data")
 def get_data():
-    return jsonify({"data": latest_data, "columns": topic_columns})
+    col_titles_dict = {t: get_column_titles_for_topic(t) for t in latest_data.keys()}
+    return jsonify({"data": latest_data, "columns": topic_columns, "col_titles": col_titles_dict})
 
-# MQTT callbacks
 def on_connect(client, userdata, flags, rc):
     print("Verbonden met MQTT broker:", rc)
     client.subscribe(MQTT_TOPIC)
@@ -173,22 +211,20 @@ def on_message(client, userdata, msg):
     try:
         payload = msg.payload.decode("utf-8")
         parsed = json.loads(payload)
-
         latest_data[msg.topic] = parsed
 
         if isinstance(parsed, list) and parsed:
             all_keys = list(parsed[0].keys())
-            # Alleen kolommen tonen die in BASE_ORDER staan en in de data zitten
-            col_order = [k for k in BASE_ORDER if k in all_keys]
+            col_order_base = get_base_order_for_topic(msg.topic)
+            col_order = [k for k in col_order_base if k in all_keys]
             topic_columns[msg.topic] = col_order
         else:
-            topic_columns[msg.topic] = BASE_ORDER
+            topic_columns[msg.topic] = get_base_order_for_topic(msg.topic)
 
         print(f"Ontvangen van {msg.topic}")
     except Exception as e:
         print(f"Fout bij verwerken bericht van {msg.topic}:", e)
 
-# MQTT starten in aparte thread
 def start_mqtt():
     client = mqtt.Client()
     client.on_connect = on_connect
