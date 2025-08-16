@@ -79,7 +79,7 @@ def get_column_titles_for_topic(topic):
 
 # Flask app
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode="eventlet")
 
 # HTML template
 html_template = """
