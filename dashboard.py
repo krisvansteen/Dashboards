@@ -89,9 +89,25 @@ html_template = """
     <title>Belgian Cycling Results</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <meta http-equiv="refresh" content="30">
 </head>
 <body class="p-4">
-    <h1>Voorlopige uitslag - Provisional result</h1>
+    <h1>Voorlopige uitslag - Provisional result (<span id="datetime"></span>)</h1>
+    <script>
+            function updateDateTime() {
+                const now = new Date();
+                // Datum en tijd in format: 16-08-2025 14:30
+                //const formatted = now.getDate().toString().padStart(2,'0') + '-' +
+                //                (now.getMonth()+1).toString().padStart(2,'0') + '-' +
+                //                now.getFullYear() + ' ' +
+                const formatted = now.getHours().toString().padStart(2,'0') + ':' +
+                                  now.getMinutes().toString().padStart(2,'0');
+                document.getElementById('datetime').textContent = formatted;
+            }
+
+           updateDateTime();          // eerste keer tonen
+     </script>
 
     {% if topics %}
     <ul class="nav nav-tabs" id="myTab" role="tablist">
