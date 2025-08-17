@@ -89,8 +89,7 @@ html_template = """
     <title>Belgian Cycling Results</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <meta http-equiv="refresh" content="30">
+    <meta http-equiv="refresh" content="3">
 </head>
 <body class="p-4">
     <h1>Voorlopige uitslag - Provisional result (<span id="datetime"></span>)</h1>
@@ -234,6 +233,10 @@ function fetchData() {
 
 
 function buildTable(rows, columns, topic) {
+    const url = new URL('https://example.com?page=1&sort=desc');
+    const params = new URLSearchParams(url.search);
+    const isAdmin = params.get('admin') === "1";
+    console.log("Build Table - Show action:" + isAdmin );
     const columnTitles = columnTitlesPerTopic[topic] || {};
     if (!rows || !columns) {
         return "<p>Geen data ontvangen voor dit topic...</p>";
@@ -243,7 +246,7 @@ function buildTable(rows, columns, topic) {
     for (const col of columns) {
         html += `<th>${columnTitles[col] || col}</th>`;
     }
-    if (topic.includes("pass") && {{ "true" if show_actie else "false" }}) {
+    if (topic.includes("pass") && isAdmin) {
        html += "<th>Actie</th>";
     }
     html += "</tr></thead><tbody>";
@@ -258,7 +261,7 @@ function buildTable(rows, columns, topic) {
         for (const col of columns) {
             html += `<td>${row[col] !== undefined ? row[col] : ""}</td>`;
         }
-        if (topic.includes("pass") && {{ "true" if show_actie else "false" }}) {
+         if (topic.includes("pass") && isAdmin) {
             html += `<td><button class="btn btn-sm btn-danger" onclick="deleteRow('${row['Rugnummer']}', '${topic}', '${row['TijdStr'] || ''}', '${row['Transponder'] || ''}', '${key}')">🗑️</button></td>`;
         }
         html += "</tr>";
@@ -293,13 +296,14 @@ function deleteRow(rugnummer, topic, tijd, transponder, key) {
 """
 
 def render_table(rows, columns, titles, topic):
+    show_actie = request.args.get("admin", "0") == "1"
     if not rows or not columns:
         return "<p>Geen data ontvangen voor dit topic...</p>"
     html = '<div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">'
     html += '<table class="table table-bordered table-sm"><thead><tr>'
     for col in columns:
         html += f"<th>{titles.get(col, col)}</th>"
-    if "pass" in topic:
+    if "pass" in topic and show_actie:
         html += "<th>Actie</th>"
     html += "</tr></thead><tbody>"
     for row in rows:
@@ -307,7 +311,7 @@ def render_table(rows, columns, titles, topic):
         html += f"<tr data-key='{key}'>"
         for col in columns:
             html += f"<td>{row.get(col, '')}</td>"
-        if "pass" in topic:
+        if "pass" in topic and  show_actie:
             html += f"<td><button class='btn btn-sm btn-danger' onclick=\"deleteRow('{row.get('Rugnummer','')}', '{topic}', '{row.get('TijdStr','')}', '{row.get('Transponder','')}')\">🗑️</button></td>"
         html += "</tr>"
     html += "</tbody></table></div>"
